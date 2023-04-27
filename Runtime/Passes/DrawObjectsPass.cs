@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine.Profiling;
 
 namespace UnityEngine.Rendering.Universal.Internal
@@ -15,14 +16,23 @@ namespace UnityEngine.Rendering.Universal.Internal
         FilteringSettings m_FilteringSettings;
         RenderStateBlock m_RenderStateBlock;
         List<ShaderTagId> m_ShaderTagIdList = new List<ShaderTagId>();
+        List<ShaderTagId> m_CurrentShaderTagIdList = new List<ShaderTagId>();
         string m_ProfilerTag;
         ProfilingSampler m_ProfilingSampler;
         bool m_IsOpaque;
 
         bool m_UseDepthPriming;
 
-        static readonly int s_DrawObjectPassDataPropID = Shader.PropertyToID("_DrawObjectPassData");
+        private OpaqueShowType showType;
 
+        static readonly int s_DrawObjectPassDataPropID = Shader.PropertyToID("_DrawObjectPassData");
+        
+        public List<ShaderTagId> m_debugShaderTagIdList = new List<ShaderTagId>()
+        {
+            new ShaderTagId("DebugDraw"),
+            new ShaderTagId("SRPDefaultUnlit"), 
+        };
+        
         public DrawObjectsPass(string profilerTag, ShaderTagId[] shaderTagIds, bool opaque, RenderPassEvent evt, RenderQueueRange renderQueueRange, LayerMask layerMask, StencilState stencilState, int stencilReference)
         {
             base.profilingSampler = new ProfilingSampler(nameof(DrawObjectsPass));
@@ -54,6 +64,11 @@ namespace UnityEngine.Rendering.Universal.Internal
             : this(profileId.GetType().Name, opaque, evt, renderQueueRange, layerMask, stencilState, stencilReference)
         {
             m_ProfilingSampler = ProfilingSampler.Get(profileId);
+        }
+
+        public void SetDrawType(OpaqueShowType incomeShowType)
+        {
+            this.showType = incomeShowType;
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -111,8 +126,40 @@ namespace UnityEngine.Rendering.Universal.Internal
                     filterSettings.layerMask = -1;
                 }
 #endif
+                #if UNITY_EDITOR
+                
+                switch (showType)
+                {
+                    case OpaqueShowType.WorldNormal:
+                        m_CurrentShaderTagIdList = m_debugShaderTagIdList;
+                        Shader.SetGlobalInt("_ShowType", 1);
+                        break;
+                    case OpaqueShowType.Diffuse:
+                        m_CurrentShaderTagIdList = m_debugShaderTagIdList;
+                        Shader.SetGlobalInt("_ShowType", 2);
+                        break;
+                    case OpaqueShowType.Specular:
+                        m_CurrentShaderTagIdList = m_debugShaderTagIdList;
+                        Shader.SetGlobalInt("_ShowType", 3);
+                        break;
+                    case OpaqueShowType.UV1:
+                        m_CurrentShaderTagIdList = m_debugShaderTagIdList;
+                        Shader.SetGlobalInt("_ShowType", 4);
+                        break;
+                    case OpaqueShowType.UV2:
+                        m_CurrentShaderTagIdList = m_debugShaderTagIdList;
+                        Shader.SetGlobalInt("_ShowType", 5);
+                        break;
+                    default:
+                        m_CurrentShaderTagIdList = m_ShaderTagIdList;
+                        // Shader.SetGlobalInt("_ShowType", 0);
+                        break;
+                }
+                #else
+                m_CurrentShaderTagIdList = m_ShaderTagIdList;
+                #endif
 
-                DrawingSettings drawSettings = CreateDrawingSettings(m_ShaderTagIdList, ref renderingData, sortFlags);
+                DrawingSettings drawSettings = CreateDrawingSettings(m_CurrentShaderTagIdList, ref renderingData, sortFlags);
 
                 var activeDebugHandler = GetActiveDebugHandler(renderingData);
                 if (activeDebugHandler != null)

@@ -3,6 +3,16 @@ using UnityEngine.Rendering.Universal.Internal;
 
 namespace UnityEngine.Rendering.Universal
 {
+    
+    public enum OpaqueShowType
+    {
+        All = 0,
+        WorldNormal = 1,
+        Diffuse = 2,
+        Specular = 3,
+        UV1 = 4,
+        UV2 = 5, 
+    }
     /// <summary>
     /// Rendering modes for Universal renderer.
     /// </summary>
@@ -144,6 +154,9 @@ namespace UnityEngine.Rendering.Universal
         internal PostProcessPass finalPostProcessPass { get => m_PostProcessPasses.finalPostProcessPass; }
         internal RenderTargetHandle colorGradingLut { get => m_PostProcessPasses.colorGradingLut; }
         internal DeferredLights deferredLights { get => m_DeferredLights; }
+        
+        
+        public static OpaqueShowType opaqueShowType { get; set; }
 
 #if ENABLE_VR && ENABLE_VR_MODULE
 #if PLATFORM_WINRT || PLATFORM_ANDROID
@@ -290,6 +303,7 @@ namespace UnityEngine.Rendering.Universal
             // Always create this pass even in deferred because we use it for wireframe rendering in the Editor or offscreen depth texture rendering.
             m_RenderOpaqueForwardPass = new DrawObjectsPass(URPProfileId.DrawOpaqueObjects, true, RenderPassEvent.BeforeRenderingOpaques, RenderQueueRange.opaque, data.opaqueLayerMask, m_DefaultStencilState, stencilData.stencilReference);
 
+
             m_CopyDepthPass = new CopyDepthPass(RenderPassEvent.AfterRenderingSkybox, m_CopyDepthMaterial);
             m_DrawSkyboxPass = new DrawSkyboxPass(RenderPassEvent.BeforeRenderingSkybox);
             m_CopyColorPass = new CopyColorPass(RenderPassEvent.AfterRenderingSkybox, m_SamplingMaterial, m_BlitMaterial);
@@ -421,6 +435,10 @@ namespace UnityEngine.Rendering.Universal
             if (cameraData.cameraType != CameraType.Game)
                 useRenderPassEnabled = false;
 
+            
+#if UNITY_EDITOR
+            m_RenderOpaqueForwardPass?.SetDrawType(opaqueShowType);
+#endif
             // Special path for depth only offscreen cameras. Only write opaques + transparents.
             bool isOffscreenDepthTexture = cameraData.targetTexture != null && cameraData.targetTexture.format == RenderTextureFormat.Depth;
             if (isOffscreenDepthTexture)
@@ -1030,7 +1048,10 @@ namespace UnityEngine.Rendering.Universal
             }
 
             EnqueuePass(m_DeferredPass);
-
+            
+#if UNITY_EDITOR
+            m_RenderOpaqueForwardOnlyPass.SetDrawType(opaqueShowType);
+#endif
             EnqueuePass(m_RenderOpaqueForwardOnlyPass);
         }
 
