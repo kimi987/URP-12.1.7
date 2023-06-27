@@ -26,6 +26,11 @@ namespace UnityEngine.Rendering.Universal
     {
         private static readonly bool m_ForceShadowPointSampling;
 
+        public static bool UseSingleRoleShadow;
+        public static Matrix4x4 SingleRoleViewMatrix;
+        public static Matrix4x4 SingleRoleProjMatrix;
+        
+
         static ShadowUtils()
         {
             m_ForceShadowPointSampling = SystemInfo.graphicsDeviceType == GraphicsDeviceType.Metal &&
@@ -50,6 +55,15 @@ namespace UnityEngine.Rendering.Universal
             shadowSliceData.offsetX = (cascadeIndex % 2) * shadowResolution;
             shadowSliceData.offsetY = (cascadeIndex / 2) * shadowResolution;
             shadowSliceData.resolution = shadowResolution;
+            
+            //Single Role Matrix
+            if (UseSingleRoleShadow)
+            {
+                shadowSliceData.viewMatrix = SingleRoleViewMatrix;
+                shadowSliceData.projectionMatrix = SingleRoleProjMatrix;
+                UseSingleRoleShadow = false;
+            }
+            
             shadowSliceData.shadowTransform = GetShadowTransform(shadowSliceData.projectionMatrix, shadowSliceData.viewMatrix);
 
             // It is the culling sphere radius multiplier for shadow cascade blending
