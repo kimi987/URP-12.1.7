@@ -61,7 +61,7 @@ namespace UnityEngine.Rendering.Universal
             {
                 shadowSliceData.viewMatrix = SingleRoleViewMatrix;
                 shadowSliceData.projectionMatrix = SingleRoleProjMatrix;
-                UseSingleRoleShadow = false;
+                // UseSingleRoleShadow = false;
             }
             
             shadowSliceData.shadowTransform = GetShadowTransform(shadowSliceData.projectionMatrix, shadowSliceData.viewMatrix);
